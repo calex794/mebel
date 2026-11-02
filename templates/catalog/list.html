@@ -1,0 +1,4 @@
+{% extends "catalog/base.html" %}
+{% block title %}{{ heading }} — корпусная мебель на заказ{% endblock %}
+{% block content %}<section class="page-top wrap"><span class="eyebrow">Корпусная мебель на заказ</span><h1>{{ heading }}</h1><p class="lead">{{ intro }}</p></section>
+<section class="section wrap">{% include "catalog/cards.html" %}</section>{% endblock %}

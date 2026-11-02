@@ -1,0 +1,8 @@
+{% extends "catalog/base.html" %}{% block title %}Контакты — корпусная мебель на заказ{% endblock %}
+{% block content %}<section class="page-top wrap"><span class="eyebrow">Контакты</span><h1>Свяжитесь с нами</h1><p class="lead">Изготавливаем корпусную мебель на заказ в Стерлитамаке, Салавате и Ишимбае.</p>
+{% if site and site.phone %}<p class="contact-detail"><a href="tel:{{ site.phone }}">{{ site.phone }}</a></p>{% endif %}
+{% if site and site.address %}<p>{{ site.address }}</p>{% endif %}{% if site and site.schedule %}<p>{{ site.schedule }}</p>{% endif %}
+{% if site and site.contact_email %}<p><a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a></p>{% endif %}
+{% if site and site.telegram %}<p><a href="{{ site.telegram }}">Написать в Telegram</a></p>{% endif %}
+{% if site and site.whatsapp %}<p><a href="{{ site.whatsapp }}">Написать в WhatsApp</a></p>{% endif %}
+<p>Чтобы обсудить заказ, оставьте телефон в форме ниже.</p></section>{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "catalog/base.html" %}
+{% block title %}{{ item.meta_title }}{% endblock %}{% block description %}{{ item.meta_description }}{% endblock %}
+{% block content %}<article><header class="page-top wrap"><span class="eyebrow">{{ kind }} · Индивидуальная мебель</span><h1>{{ item.title }}</h1>{% if item.summary %}<p class="lead">{{ item.summary }}</p>{% endif %}
+<a href="#lead-form" class="button">Обсудить похожий проект</a></header>
+{% if item.image %}<div class="wrap detail-hero"><img src="{{ item.image.url }}" alt="{{ item.title }}"></div>{% endif %}
+<div class="section wrap"><div class="article-body">{{ item.body|linebreaks }}</div>
+{% if photos %}<div class="photo-gallery">{% for photo in photos %}<figure><img loading="lazy" src="{{ photo.image.url }}" alt="{{ photo.caption|default:item.title }}">{% if photo.caption %}<figcaption>{{ photo.caption }}</figcaption>{% endif %}</figure>{% endfor %}</div>{% endif %}
+</div></article>{% endblock %}
