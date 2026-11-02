@@ -2,7 +2,13 @@
 <section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">Корпусная мебель на заказ · Башкортостан</span>
 <h1>{% if site %}{{ site.hero_title }}{% else %}Корпусная мебель, созданная именно для вас{% endif %}</h1>
 <p class="lead">{% if site %}{{ site.hero_text }}{% else %}По индивидуальным размерам. С вниманием к качеству исполнения и каждой детали.{% endif %}</p>
-<a class="button" href="#lead-form">Обсудить проект</a><p class="subtle">Стерлитамак · Салават · Ишимбай</p></div>
+<form class="hero-quick-form" method="post" action="{% url 'submit_lead' %}" aria-label="Оставить заявку">{% csrf_token %}
+<input type="hidden" name="next" value="{{ request.path }}">
+<input type="hidden" name="website" value="">
+<label for="hero-phone">Оставьте телефон — обсудим ваш проект</label>
+<div class="hero-quick-row"><input id="hero-phone" type="tel" name="phone" placeholder="+7 (999) 123-45-67" autocomplete="tel" inputmode="tel" required maxlength="40"><button class="button" type="submit">Обсудить проект</button></div>
+<label class="hero-consent"><input type="checkbox" name="consent" required> <span>Согласен(на) на <a href="{% url 'privacy' %}">обработку персональных данных</a> для связи по заявке</span></label>
+</form><p class="subtle">Стерлитамак · Салават · Ишимбай</p></div>
 <div class="hero-visual">{% if site and site.hero_image %}<img src="{{ site.hero_image.url }}" alt="Корпусная мебель по индивидуальному заказу">{% else %}<div class="photo-placeholder"><span>Место для фотографии вашей работы</span></div>{% endif %}</div></div></section>
 <section class="section wrap"><span class="eyebrow">Индивидуальные решения</span><h2>Мебель под ваше пространство</h2>
 <p class="section-intro">Каждый проект начинается с ваших задач, размеров помещения и пожеланий. Цвета и материалы подбираются при личном обсуждении.</p>
