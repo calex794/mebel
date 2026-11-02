@@ -14,4 +14,4 @@ urlpatterns = [
     path("privacy/", views.privacy, name="privacy"),
     path("zayavka/", views.submit_lead, name="submit_lead"),
     path("robots.txt", views.robots, name="robots"),
-],
+]
