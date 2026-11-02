@@ -18,6 +18,9 @@ jobs:
       - run: python manage.py makemigrations --check --dry-run
         env:
           DEBUG: '1'
+      - run: python manage.py collectstatic --noinput
+        env:
+          DEBUG: '1'
       - run: python manage.py test
         env:
           DEBUG: '1'
