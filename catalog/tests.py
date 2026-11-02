@@ -26,6 +26,23 @@ class PublicPagesTests(TestCase):
         item = Article.objects.create(title="Материалы", slug="materialy", body="Текст", published=True)
         self.assertContains(self.client.get(item.get_absolute_url()), "Материалы")
 
+    def test_short_form_is_on_first_screen(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, 'id="hero-phone"')
+        self.assertContains(response, 'name="consent"')
+        self.assertContains(response, 'name="phone"', count=2)
+
+    def test_short_form_saves_lead_without_extra_fields(self):
+        response = self.client.post(reverse("submit_lead"), {
+            "phone": "+7 927 123-45-67",
+            "consent": "on", "next": "/",
+        })
+        self.assertRedirects(response, "/")
+        lead = Lead.objects.get()
+        self.assertEqual(lead.name, "")
+        self.assertEqual(lead.message, "")
+        self.assertEqual(lead.source, "/")
+
     def test_submit_lead(self):
         response = self.client.post(reverse("submit_lead"), {
             "name": "Анна", "phone": "+7 927 123-45-67",
