@@ -1,0 +1,36 @@
+# Local-only preview. The bound host address MUST remain 127.0.0.1.
+# This configuration is not a public / production deployment.
+services:
+  site:
+    build:
+      context: .
+      dockerfile: Dockerfile.preview
+    env_file:
+      - .env.preview
+    environment:
+      DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost"
+      SQLITE_PATH: "/data/db.sqlite3"
+      DJANGO_MEDIA_ROOT: "/data/media"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - preview_data:/data
+    command:
+      - sh
+      - -c
+      - "python manage.py migrate --noinput && exec python manage.py runserver 0.0.0.0:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=4)"]
+      interval: 7s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: "no"
+
+volumes:
+  preview_data:
