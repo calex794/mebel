@@ -33,6 +33,7 @@ class LeadForm(forms.Form):
         label="Согласен(на) на обработку персональных данных для связи по заявке",
         required=True,
     )
+    consent_version = forms.CharField(max_length=40, widget=forms.HiddenInput)
     # Honeypot: ordinary users never see this field.
     website = forms.CharField(required=False, widget=forms.HiddenInput)
 

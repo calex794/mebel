@@ -16,15 +16,15 @@
 <section class="contact-section" id="lead-form"><div class="wrap contact-grid">
 <div><span class="eyebrow">Обсудим вашу идею</span><h2>Оставьте номер — мы свяжемся с вами</h2>
 <p>Выбор материалов и деталей проходит лично, по реальным образцам. Здесь достаточно вашего телефона.</p></div>
-<form method="post" action="{% url 'submit_lead' %}" class="form">{% csrf_token %}
+{% if privacy_policy %}<form method="post" action="{% url 'submit_lead' %}" class="form">{% csrf_token %}
 <input type="hidden" name="next" value="{{ request.path }}">
-{{ lead_form.website }}
+{{ lead_form.website }}{{ lead_form.consent_version }}
 <label for="id_name">Имя (по желанию)</label>{{ lead_form.name }}
 <label for="id_phone">Телефон *</label>{{ lead_form.phone }}
 <label for="id_message">Ваши пожелания (по желанию)</label>{{ lead_form.message }}
-<label class="check">{{ lead_form.consent }} <span>Согласен(на) на обработку данных для связи по заявке. <a href="{% url 'privacy' %}">Политика</a></span></label>
+<label class="check">{{ lead_form.consent }} <span>{{ privacy_policy.consent_text }} <a href="{% url 'privacy' %}?version={{ privacy_policy.version|urlencode }}">Политика (ред. {{ privacy_policy.version }})</a></span></label>
 <button type="submit" class="button">Оставить заявку</button>
-</form></div></section>
+</form>{% else %}<p>Приём заявок пока недоступен: документ об обработке персональных данных не опубликован.</p>{% endif %}</div></section>
 <footer class="footer"><div class="wrap footer-grid"><div><strong>{% if site %}{{ site.brand }}{% else %}Мебель на заказ{% endif %}</strong><p>Стерлитамак · Салават · Ишимбай</p></div>
 <div>{% if site and site.phone %}<p><a href="tel:{{ site.phone }}">{{ site.phone }}</a></p>{% endif %}
 {% if site and site.address %}<p>{{ site.address }}</p>{% endif %}
