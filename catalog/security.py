@@ -2,6 +2,10 @@
 import hashlib
 
 from django.conf import settings
+from django.contrib.auth import logout as auth_logout
+from django.urls import reverse
+from django.http import HttpResponseRedirect
+import hmac
 from django.core.cache import cache
 from django.http import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
@@ -21,7 +25,7 @@ def address_key(request, purpose):
 
 class AdminLoginThrottle(MiddlewareMixin):
     def process_request(self, request):
-        if request.path != "/upravlenie/login/" or request.method != "POST":
+        if request.path not in {"/upravlenie/login/", "/upravlenie/vhod/"} or request.method != "POST":
             return None
         key = address_key(request, "admin-login")
         if cache.get(key, 0) >= 10:
@@ -31,4 +35,27 @@ class AdminLoginThrottle(MiddlewareMixin):
                 cache.incr(key)
             except ValueError:
                 cache.set(key, 1, timeout=900)
+        return None
+
+
+class AdminKeySessionGuard(MiddlewareMixin):
+    """Protect the entire Django admin and revoke sessions when the key rotates."""
+
+    def process_request(self, request):
+        if not request.path.startswith("/upravlenie/"):
+            return None
+        expected = getattr(settings, "MEBEL_ADMIN_KEY_SHA256", "")
+        if not expected:
+            if getattr(settings, "MEBEL_ADMIN_KEY_REQUIRED", False):
+                if request.user.is_authenticated:
+                    auth_logout(request)
+                return HttpResponse("Управление временно недоступно.", status=503)
+            return None
+        if request.path == "/upravlenie/vhod/":
+            return None
+        if request.user.is_authenticated:
+            fingerprint = str(request.session.get("mebel_admin_key_hash", ""))
+            if not hmac.compare_digest(fingerprint, expected):
+                auth_logout(request)
+                return HttpResponseRedirect(reverse("admin_key_login"))
         return None

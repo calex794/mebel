@@ -1,0 +1,39 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Вход в управление</title>
+  <link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'admin/css/login.css' %}">
+</head>
+<body class="login" data-admin-utc-offset="0">
+<div id="container">
+  <header id="header">
+    <div id="branding"><h1 id="site-name">Управление мебельным сайтом</h1></div>
+  </header>
+  <main id="content-start" class="content">
+    <div id="content" class="colM">
+      <h1>Вход по ключу</h1>
+      <p>Вставьте личный ключ администратора. Он не сохраняется в браузере.</p>
+      <div id="content-main">
+        <form method="post" action="{% url 'admin_key_login' %}" autocomplete="off">
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <p class="errornote">{{ form.non_field_errors }}</p>
+          {% endif %}
+          <div class="form-row">
+            {{ form.access_key.errors }}
+            {{ form.access_key.label_tag }}
+            {{ form.access_key }}
+          </div>
+          <div class="submit-row"><input type="submit" value="Войти"></div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
