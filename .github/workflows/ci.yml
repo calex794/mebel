@@ -2,6 +2,7 @@ name: Проверка сайта
 on:
   push:
   pull_request:
+  workflow_dispatch:
 jobs:
   django:
     runs-on: ubuntu-latest
@@ -45,6 +46,8 @@ jobs:
         with:
           python-version: '3.13'
       - run: python scripts/prepare_production.py example.org admin@example.org
+      - run: for f in scripts/ci_deploy_production.sh scripts/deploy_release.sh; do bash -n "$f"; done
+      - run: MEBEL_WEB_IMAGE=mebel-web:ci docker compose --env-file .env.production -f compose.production.yaml config --quiet
       - run: docker compose --env-file .env.production -f compose.production.yaml config --quiet
       - run: docker run --rm -e SITE_DOMAIN=example.org -e ACME_EMAIL=admin@example.org -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
       - run: docker compose --env-file .env.production -f compose.production.yaml up -d --build --wait db cache web
@@ -60,3 +63,28 @@ jobs:
 
       - if: always()
         run: docker compose --env-file .env.production -f compose.production.yaml down -v || true
+
+  deploy-production:
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    needs: [django, preview, production-config]
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    concurrency:
+      group: mebel-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build on GitHub and deploy verified release
+        run: bash scripts/ci_deploy_production.sh
