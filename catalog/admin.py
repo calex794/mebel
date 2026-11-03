@@ -1,10 +1,12 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django import forms
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.utils.html import format_html
 
 from .slugs import latin_slug
 
-from .models import Article, FAQ, Lead, Project, ProjectImage, Service, SiteSettings
+from .models import Article, FAQ, Lead, PrivacyPolicy, Project, ProjectImage, Service, SiteSettings
 
 
 class ContentForm(forms.ModelForm):
@@ -92,12 +94,76 @@ class FAQAdmin(admin.ModelAdmin):
 
 @admin.register(Lead)
 class LeadAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "phone", "name", "status", "source")
+    list_display = ("created_at", "phone", "name", "status", "source", "consent_version")
     list_filter = ("status", "created_at")
     list_editable = ("status",)
     search_fields = ("phone", "name", "message")
-    readonly_fields = ("name", "phone", "message", "source", "consent_at", "created_at")
-    fields = ("name", "phone", "message", "source", "status", "consent_at", "created_at")
+    readonly_fields = ("name", "phone", "message", "source", "consent_at", "consent_version", "consent_policy", "created_at")
+    fields = ("name", "phone", "message", "source", "status", "consent_at", "consent_version", "consent_policy", "created_at")
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(PrivacyPolicy)
+class PrivacyPolicyAdmin(admin.ModelAdmin):
+    list_display = ("version", "operator_name", "is_active", "published_at")
+    list_filter = ("is_active",)
+    search_fields = ("version", "operator_name")
+    readonly_fields = ("is_active", "published_at", "created_at")
+    actions = ("activate_policy", "disable_policy")
+    fieldsets = [
+        ("Версия и публикация", {"fields": ("version", "is_active", "published_at", "created_at")}),
+        ("Оператор", {"fields": (
+            "operator_name", "operator_status", "operator_identifier",
+            "operator_address", "operator_contact",
+        )}),
+        ("Обработка данных", {"fields": (
+            "purposes", "data_categories", "data_subjects", "processing_actions",
+            "legal_basis", "retention_period", "deletion_procedure",
+            "withdrawal_procedure", "security_measures", "third_parties",
+        )}),
+        ("Тексты", {"fields": ("additional_text", "consent_text")}),
+    ]
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(super().get_readonly_fields(request, obj))
+        if obj and obj.published_at:
+            fields.extend(PrivacyPolicy.EDITABLE_FIELDS)
+        return fields
+
+    def has_delete_permission(self, request, obj=None):
+        return super().has_delete_permission(request, obj) and not (obj and obj.published_at)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        # Групповое удаление обходит проверку конкретной опубликованной редакции.
+        actions.pop("delete_selected", None)
+        return actions
+
+    @admin.action(description="Опубликовать выбранную редакцию (одну)")
+    def activate_policy(self, request, queryset):
+        selected = list(queryset[:2])
+        if len(selected) != 1:
+            self.message_user(request, "Выберите ровно одну редакцию.", messages.ERROR)
+            return
+        policy = selected[0]
+        try:
+            with transaction.atomic():
+                list(PrivacyPolicy.objects.select_for_update().filter(is_active=True))
+                PrivacyPolicy.objects.filter(is_active=True).exclude(pk=policy.pk).update(is_active=False)
+                policy.is_active = True
+                policy.save()
+        except (ValidationError, IntegrityError) as exc:
+            self.message_user(request, f"Редакция не опубликована: {exc}", messages.ERROR)
+            return
+        self.message_user(request, f"Редакция {policy.version} используется для новых заявок.")
+
+    @admin.action(description="Остановить приём заявок по выбранной редакции (одной)")
+    def disable_policy(self, request, queryset):
+        selected = list(queryset[:2])
+        if len(selected) != 1:
+            self.message_user(request, "Выберите ровно одну редакцию.", messages.ERROR)
+            return
+        PrivacyPolicy.objects.filter(pk=selected[0].pk, is_active=True).update(is_active=False)
+        self.message_user(request, "Редакция отключена. Без действующей редакции заявки не принимаются.")
