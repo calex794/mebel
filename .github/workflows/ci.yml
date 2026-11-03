@@ -46,5 +46,5 @@ jobs:
           python-version: '3.13'
       - run: python scripts/prepare_production.py example.org admin@example.org
       - run: docker compose --env-file .env.production -f compose.production.yaml config --quiet
-      - run: docker run --rm -e SITE_DOMAIN=example.org -e ACME_EMAIL=admin@example.org -v "${{ github.workspace }}/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+      - run: docker run --rm -e SITE_DOMAIN=example.org -e ACME_EMAIL=admin@example.org -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
       - run: docker build -f Dockerfile.production -t furniture-production-check .
