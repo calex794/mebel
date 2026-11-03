@@ -1,7 +1,6 @@
 from django.contrib import messages
 from django.core.cache import cache
-from django.db import transaction
-from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
@@ -9,7 +8,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .forms import LeadForm
-from .models import Article, Lead, Project, Service
+from .models import Article, FAQ, Lead, Project, Service
 
 
 def home(request):
@@ -17,6 +16,7 @@ def home(request):
         "services": Service.objects.filter(published=True)[:6],
         "projects": Project.objects.filter(published=True)[:6],
         "articles": Article.objects.filter(published=True)[:3],
+        "faqs": FAQ.objects.filter(published=True)[:8],
     })
 
 

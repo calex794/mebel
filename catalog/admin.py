@@ -1,8 +1,6 @@
 from django.contrib import admin
-from django.core.exceptions import PermissionDenied
-from django.http import HttpResponseRedirect
 
-from .models import Article, Lead, Project, ProjectImage, Service, SiteSettings
+from .models import Article, FAQ, Lead, Project, ProjectImage, Service, SiteSettings
 
 
 @admin.register(SiteSettings)
@@ -47,6 +45,14 @@ class ProjectAdmin(ContentAdmin):
 @admin.register(Article)
 class ArticleAdmin(ContentAdmin):
     pass
+
+
+@admin.register(FAQ)
+class FAQAdmin(admin.ModelAdmin):
+    list_display = ("question", "published", "order")
+    list_filter = ("published",)
+    list_editable = ("published", "order")
+    search_fields = ("question", "answer")
 
 
 @admin.register(Lead)

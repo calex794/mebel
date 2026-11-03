@@ -1,12 +1,11 @@
-from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.urls import reverse
 
 
 class SiteSettings(models.Model):
     brand = models.CharField("Название мастерской", max_length=140, default="Мебель на заказ")
-    hero_title = models.CharField("Заголовок", max_length=220, default="Корпусная мебель, созданная именно для вас")
-    hero_text = models.TextField("Подзаголовок", default="По индивидуальным размерам. С вниманием к качеству исполнения и каждой детали.")
+    hero_title = models.CharField("Заголовок", max_length=220, default="Корпусная мебель на заказ по вашим размерам")
+    hero_text = models.TextField("Подзаголовок", default="Кухни, шкафы, гардеробные и другая мебель по индивидуальному проекту. Продумываем детали вместе с вами, а материалы и цвета выбираем по настоящим образцам.")
     hero_image = models.ImageField("Фото первого экрана", upload_to="hero/", blank=True)
     phone = models.CharField("Телефон", max_length=50, blank=True)
     address = models.CharField("Адрес", max_length=255, blank=True)
@@ -97,6 +96,21 @@ class Article(PublishedModel):
 
     def get_absolute_url(self):
         return reverse("article_detail", args=[self.slug])
+
+
+class FAQ(models.Model):
+    question = models.CharField("Вопрос", max_length=220)
+    answer = models.TextField("Ответ")
+    published = models.BooleanField("Опубликовано", default=True)
+    order = models.PositiveIntegerField("Порядок", default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Вопрос и ответ"
+        verbose_name_plural = "Частые вопросы"
+
+    def __str__(self):
+        return self.question
 
 
 class Lead(models.Model):

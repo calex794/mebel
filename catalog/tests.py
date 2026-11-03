@@ -26,6 +26,55 @@ class PublicPagesTests(TestCase):
         item = Article.objects.create(title="Материалы", slug="materialy", body="Текст", published=True)
         self.assertContains(self.client.get(item.get_absolute_url()), "Материалы")
 
+    def test_home_has_clear_category_and_regions(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Корпусная мебель на заказ по вашим размерам")
+        self.assertContains(response, "Стерлитамак, Салават, Ишимбай")
+        self.assertContains(response, 'id="hero-phone"')
+
+    def test_empty_content_sections_are_hidden(self):
+        html = self.client.get(reverse("home")).content.decode()
+        self.assertNotIn('id="works-heading"', html)
+        self.assertNotIn('id="services-heading"', html)
+        self.assertNotIn('id="articles-heading"', html)
+        self.assertNotIn("Здесь появятся фотографии выполненных проектов", html)
+
+    def test_published_work_and_service_present(self):
+        Service.objects.create(title="Кухни на заказ", slug="kuhni", published=True)
+        Project.objects.create(title="Шкаф в прихожую", slug="shkaf", published=True)
+        html = self.client.get(reverse("home")).content.decode()
+        self.assertIn('id="works-heading"', html)
+        self.assertIn('id="services-heading"', html)
+        self.assertLess(html.index('id="works-heading"'), html.index('id="services-heading"'))
+        self.assertIn("Кухни на заказ", html)
+        self.assertIn("Шкаф в прихожую", html)
+
+    def test_draft_work_not_in_home(self):
+        Project.objects.create(title="Скрытая работа", slug="hidden", published=False)
+        self.assertNotContains(self.client.get(reverse("home")), "Скрытая работа")
+
+    def test_about_is_editable_on_main(self):
+        SiteSettings.objects.create(about="Собственная история мастерской")
+        self.assertContains(self.client.get(reverse("home")), "Собственная история мастерской")
+
+    def test_faq_publication(self):
+        from .models import FAQ
+        FAQ.objects.create(question="Как выбрать?", answer="По образцам.", published=True, order=1)
+        FAQ.objects.create(question="Не показывать", answer="Черновик.", published=False, order=2)
+        page = self.client.get(reverse("home"))
+        self.assertContains(page, "Как выбрать?")
+        self.assertNotContains(page, "Не показывать")
+
+    def test_faq_admin_requires_auth(self):
+        from django.urls import reverse
+        from .models import FAQ
+        FAQ.objects.create(question="Вопрос", answer="Ответ")
+        address=reverse("admin:catalog_faq_changelist")
+        self.assertEqual(self.client.get(address).status_code, 302)
+        user = get_user_model().objects.create_superuser("editor", "editor@example.com", "a-safe-password-456")
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(address).status_code, 200)
+
     def test_short_form_is_on_first_screen(self):
         response = self.client.get(reverse("home"))
         self.assertContains(response, 'id="hero-phone"')

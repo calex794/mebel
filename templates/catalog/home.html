@@ -1,23 +1,49 @@
 {% extends "catalog/base.html" %}{% block content %}
-<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">Корпусная мебель на заказ · Башкортостан</span>
-<h1>{% if site %}{{ site.hero_title }}{% else %}Корпусная мебель, созданная именно для вас{% endif %}</h1>
-<p class="lead">{% if site %}{{ site.hero_text }}{% else %}По индивидуальным размерам. С вниманием к качеству исполнения и каждой детали.{% endif %}</p>
+<section class="hero"><div class="wrap hero-grid"><div class="hero-copy">
+<span class="eyebrow">Корпусная мебель на заказ · Стерлитамак, Салават, Ишимбай</span>
+<h1>{% if site %}{{ site.hero_title }}{% else %}Корпусная мебель на заказ по вашим размерам{% endif %}</h1>
+<p class="lead">{% if site %}{{ site.hero_text }}{% else %}Кухни, шкафы, гардеробные и другая мебель по индивидуальному проекту. Продумываем детали вместе с вами, а материалы и цвета выбираем по настоящим образцам.{% endif %}</p>
 <form class="hero-quick-form" method="post" action="{% url 'submit_lead' %}" aria-label="Оставить заявку">{% csrf_token %}
-<input type="hidden" name="next" value="{{ request.path }}">
-<input type="hidden" name="website" value="">
+<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="website" value="">
 <label for="hero-phone">Оставьте телефон — обсудим ваш проект</label>
 <div class="hero-quick-row"><input id="hero-phone" type="tel" name="phone" placeholder="+7 (999) 123-45-67" autocomplete="tel" inputmode="tel" required maxlength="40"><button class="button" type="submit">Обсудить проект</button></div>
 <label class="hero-consent"><input type="checkbox" name="consent" required> <span>Согласен(на) на <a href="{% url 'privacy' %}">обработку персональных данных</a> для связи по заявке</span></label>
-</form><p class="subtle">Стерлитамак · Салават · Ишимбай</p></div>
-<div class="hero-visual">{% if site and site.hero_image %}<img src="{{ site.hero_image.url }}" alt="Корпусная мебель по индивидуальному заказу">{% else %}<div class="photo-placeholder"><span>Место для фотографии вашей работы</span></div>{% endif %}</div></div></section>
-<section class="section wrap"><span class="eyebrow">Индивидуальные решения</span><h2>Мебель под ваше пространство</h2>
-<p class="section-intro">Каждый проект начинается с ваших задач, размеров помещения и пожеланий. Цвета и материалы подбираются при личном обсуждении.</p>
-{% include "catalog/cards.html" with items=services empty_text="Здесь появятся направления мебели, добавленные через панель управления." %}
+</form>
+</div><div class="hero-visual">{% if site and site.hero_image %}<img src="{{ site.hero_image.url }}" alt="Корпусная мебель по индивидуальному заказу" fetchpriority="high">{% else %}<div class="photo-placeholder"><span>Здесь будет фотография выполненной работы</span></div>{% endif %}</div></div></section>
+
+{% if projects %}<section class="section sand" aria-labelledby="works-heading"><div class="wrap"><span class="eyebrow">Реальные проекты</span>
+<h2 id="works-heading">Посмотрите качество исполнения</h2>
+<p class="section-intro">Готовая мебель и детали работ показывают больше, чем любые обещания.</p>
+{% include "catalog/cards.html" with items=projects %}<a href="{% url 'projects' %}" class="text-link">Все работы →</a>
+</div></section>{% endif %}
+
+{% if services %}<section class="section wrap" aria-labelledby="services-heading"><span class="eyebrow">Направления</span>
+<h2 id="services-heading">Мебель под ваше пространство</h2>
+<p class="section-intro">Каждый проект начинается с размеров помещения и ваших задач.</p>
+{% include "catalog/cards.html" with items=services %}<a href="{% url 'services' %}" class="text-link">Все направления →</a>
+</section>{% endif %}
+
+<section class="section wrap" aria-labelledby="approach-heading"><span class="eyebrow">Индивидуальный подход</span>
+<h2 id="approach-heading">Под ваши задачи, а не под шаблон</h2>
+<div class="advantages"><article><span>01</span><h3>Размеры и пространство</h3><p>Учитываем особенности помещения и то, как вы будете пользоваться мебелью.</p></article>
+<article><span>02</span><h3>Материалы вживую</h3><p>Цвета, фактуры и наполнение обсуждаем по настоящим образцам.</p></article>
+<article><span>03</span><h3>Внимание к деталям</h3><p>Продумываем конструкцию, внешний вид и удобство в повседневной жизни.</p></article></div>
+{% if site and site.about %}<div class="about-copy"><h3>О мастерской</h3>{{ site.about|linebreaks }}</div>{% endif %}
 </section>
-<section class="section sand"><div class="wrap"><span class="eyebrow">Портфолио</span><h2>Наши работы</h2><p class="section-intro">Настоящие проекты лучше любых обещаний показывают внимание к деталям.</p>
-{% include "catalog/cards.html" with items=projects empty_text="Здесь появятся фотографии выполненных проектов." %}
-<a href="{% url 'projects' %}" class="text-link">Все работы →</a></div></section>
-<section class="section wrap"><span class="eyebrow">Подход к работе</span><h2>Качество начинается с деталей</h2>
-<div class="advantages"><article><span>01</span><h3>Под ваши размеры</h3><p>Проектируем корпусную мебель с учётом особенностей помещения.</p></article><article><span>02</span><h3>Личное обсуждение</h3><p>Подбор цвета, материалов и наполнения — с реальными образцами.</p></article><article><span>03</span><h3>Внимание к исполнению</h3><p>В готовых работах показываем детали, материалы и качество сборки.</p></article></div></section>
-{% if articles %}<section class="section sand"><div class="wrap"><span class="eyebrow">Полезное</span><h2>Статьи о мебели</h2>{% include "catalog/cards.html" with items=articles %}<a class="text-link" href="{% url 'articles' %}">Все статьи →</a></div></section>{% endif %}
+
+<section class="section sand" aria-labelledby="process-heading"><div class="wrap"><span class="eyebrow">Как начать</span>
+<h2 id="process-heading">От идеи до обсуждения проекта</h2>
+<ol class="process-steps"><li><h3>Оставьте телефон</h3><p>Это единственное, что обязательно для заявки.</p></li>
+<li><h3>Расскажите о задаче</h3><p>Обсудим, какая мебель нужна и что важно именно вам.</p></li>
+<li><h3>Подберите материалы</h3><p>Цвета, фактуры и наполнение выбираются при личном обсуждении по образцам.</p></li></ol>
+<a class="button" href="#lead-form">Оставить заявку</a></div></section>
+
+{% if faqs %}<section class="section wrap" aria-labelledby="faq-heading"><span class="eyebrow">Перед заказом</span>
+<h2 id="faq-heading">Частые вопросы</h2><div class="faq-list">
+{% for faq in faqs %}<details class="faq-item"><summary>{{ faq.question }}</summary><div class="faq-answer">{{ faq.answer|linebreaks }}</div></details>{% endfor %}
+</div></section>{% endif %}
+
+{% if articles %}<section class="section sand" aria-labelledby="articles-heading"><div class="wrap"><span class="eyebrow">Полезное</span>
+<h2 id="articles-heading">Как выбрать мебель</h2>
+{% include "catalog/cards.html" with items=articles %}<a class="text-link" href="{% url 'articles' %}">Все статьи →</a></div></section>{% endif %}
 {% endblock %}
