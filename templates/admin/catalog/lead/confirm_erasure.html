@@ -1,0 +1,18 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h2>Очистка контактных данных заявки №{{ lead.pk }}</h2>
+<p>Подтверждённый отзыв зарегистрирован: {{ lead.consent_withdrawn_at|date:"d.m.Y H:i" }}.</p>
+<p><strong>Это необратимая операция для основной базы:</strong> будут очищены телефон, имя, пожелания и адрес страницы обращения. Останутся номер заявки, даты согласия, отзыва и очистки, а также ссылка на редакцию согласия. Резервные копии и другие системы автоматически не изменяются.</p>
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="erase_withdrawn_lead">
+  <input type="hidden" name="_selected_action" value="{{ lead.pk }}">
+  <input type="hidden" name="select_across" value="0">
+  <p><label><input type="checkbox" name="retention_checked" value="on" required> Проверил(а) обращение, основания и сроки хранения; препятствий для очистки заявки в основной БД нет.</label></p>
+  <p><label><input type="checkbox" name="backups_checked" value="on" required> Понимаю, что архивы, резервные копии и внешние системы необходимо обработать отдельно.</label></p>
+  <p><label for="id_confirm_erasure">Для подтверждения введите <code>{{ confirmation_phrase }}</code>:</label>
+  <input id="id_confirm_erasure" type="text" name="confirm_erasure" autocomplete="off" required></p>
+  <p><button type="submit" class="button default">Очистить данные</button>
+  <a href="{% url 'admin:catalog_lead_changelist' %}">Отмена</a></p>
+</form>
+{% endblock %}

@@ -1,7 +1,12 @@
 from django.contrib import admin, messages
+from django.contrib.admin.models import LogEntry
+from django.contrib.contenttypes.models import ContentType
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.http import HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
@@ -97,24 +102,33 @@ class FAQAdmin(admin.ModelAdmin):
 class LeadAdmin(admin.ModelAdmin):
     list_display = (
         "created_at", "phone", "name", "status", "source",
-        "consent_version", "consent_withdrawn_at",
+        "consent_version", "consent_withdrawn_at", "erased_at",
     )
-    list_filter = ("status", "created_at", "consent_withdrawn_at")
+    list_filter = ("status", "created_at", "consent_withdrawn_at", "erased_at")
     search_fields = ("phone", "name", "message")
     readonly_fields = (
         "name", "phone", "message", "source", "consent_at",
         "consent_version", "consent_policy", "consent_withdrawn_at",
-        "created_at",
+        "erased_at", "created_at",
     )
     fields = (
         "name", "phone", "message", "source", "status", "consent_at",
         "consent_version", "consent_policy", "consent_withdrawn_at",
-        "created_at",
+        "erased_at", "created_at",
     )
-    actions = ("confirm_consent_withdrawal",)
+    actions = ("confirm_consent_withdrawal", "erase_withdrawn_lead")
 
     def has_add_permission(self, request):
         return False
+
+    def has_delete_permission(self, request, obj=None):
+        # Запрет стандартного удаления: оно обходит подтверждение и учёт очистки.
+        return False
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
 
     def get_readonly_fields(self, request, obj=None):
         fields = list(super().get_readonly_fields(request, obj))
@@ -137,6 +151,92 @@ class LeadAdmin(admin.ModelAdmin):
             "Проверка оснований хранения и удаление данных выполняются отдельно.",
         )
 
+
+    @admin.action(description="Очистить личные данные отозванной заявки (с подтверждением)")
+    def erase_withdrawn_lead(self, request, queryset):
+        # Без массовой очистки. Оператор отдельно проверяет каждую заявку,
+        # законные основания дальнейшего хранения и действия с копиями.
+        selected_ids = list(queryset.values_list("pk", flat=True)[:2])
+        if len(selected_ids) != 1:
+            self.message_user(request, "Для очистки выберите ровно одну заявку.", messages.ERROR)
+            return None
+
+        lead_id = selected_ids[0]
+        lead = Lead.objects.get(pk=lead_id)
+        if not self.has_change_permission(request, lead):
+            self.message_user(request, "Недостаточно прав для изменения заявки.", messages.ERROR)
+            return None
+        if lead.erased_at:
+            self.message_user(request, f"Заявка №{lead_id} уже очищена.", messages.WARNING)
+            return None
+        if lead.status != "withdrawn" or lead.consent_withdrawn_at is None:
+            self.message_user(
+                request, "Сначала зарегистрируйте подтверждённый отзыв согласия.",
+                messages.ERROR,
+            )
+            return None
+
+        phrase = f"СТЕРЕТЬ {lead_id}"
+        if "confirm_erasure" in request.POST:
+            if (
+                request.POST.get("confirm_erasure", "").strip() != phrase
+                or request.POST.get("retention_checked") != "on"
+                or request.POST.get("backups_checked") != "on"
+            ):
+                self.message_user(
+                    request, "Очистка не выполнена: нужны обе отметки и точная фраза.",
+                    messages.ERROR,
+                )
+            else:
+                with transaction.atomic():
+                    locked = Lead.objects.select_for_update().get(pk=lead_id)
+                    if (
+                        locked.status != "withdrawn"
+                        or locked.consent_withdrawn_at is None
+                        or locked.erased_at is not None
+                    ):
+                        self.message_user(
+                            request, "Состояние заявки изменилось, очистка отменена.",
+                            messages.ERROR,
+                        )
+                        return None
+                    # Все свободные поля, в которых может оказаться личная
+                    # информация, очищаются в одной транзакции.
+                    locked.name = ""
+                    locked.phone = ""
+                    locked.message = ""
+                    locked.source = ""
+                    locked.erased_at = timezone.now()
+                    locked.save(update_fields=[
+                        "name", "phone", "message", "source", "erased_at",
+                    ])
+                    # Django admin may have copied a phone number into
+                    # object_repr on earlier manual changes. Scrub those
+                    # historical log fields in the same transaction.
+                    LogEntry.objects.filter(
+                        content_type=ContentType.objects.get_for_model(Lead),
+                        object_id=str(lead_id),
+                    ).update(
+                        object_repr=f"Заявка №{lead_id} (контакты очищены)",
+                        change_message="",
+                    )
+                self.message_user(
+                    request,
+                    f"Контактные данные заявки №{lead_id} очищены в основной БД. "
+                    "Проверьте резервные копии и внешние системы отдельно.",
+                )
+                return HttpResponseRedirect(reverse("admin:catalog_lead_changelist"))
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Подтверждение очистки заявки",
+            "opts": self.model._meta,
+            "lead": lead,
+            "confirmation_phrase": phrase,
+        }
+        return TemplateResponse(
+            request, "admin/catalog/lead/confirm_erasure.html", context,
+        )
 
 @admin.register(PrivacyPolicy)
 class PrivacyPolicyAdmin(admin.ModelAdmin):
