@@ -1,4 +1,5 @@
 {% extends "catalog/base.html" %}{% block title %}Контакты — корпусная мебель на заказ{% endblock %}
+{% block description %}Контакты мастерской корпусной мебели на заказ в Стерлитамаке, Салавате и Ишимбае. Обсуждение индивидуальных проектов и подбор материалов.{% endblock %}
 {% block content %}<section class="page-top wrap"><span class="eyebrow">Контакты</span><h1>Свяжитесь с нами</h1><p class="lead">Изготавливаем корпусную мебель на заказ в Стерлитамаке, Салавате и Ишимбае.</p>
 {% if site and site.phone %}<p class="contact-detail"><a href="tel:{{ site.phone }}">{{ site.phone }}</a></p>{% endif %}
 {% if site and site.address %}<p>{{ site.address }}</p>{% endif %}{% if site and site.schedule %}<p>{{ site.schedule }}</p>{% endif %}

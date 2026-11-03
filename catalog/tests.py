@@ -149,6 +149,44 @@ class PublicPagesTests(TestCase):
         SiteSettings.objects.create(brand="Мастерская")
         self.assertContains(self.client.get("/"), "Мастерская")
 
+
+    def test_search_metadata_is_distinct_for_sections(self):
+        expected = {
+            "services": "Индивидуальные решения для вашего пространства.",
+            "projects": "Примеры мебели, изготовленной по индивидуальным проектам.",
+            "articles": "О выборе мебели, материалах и планировании интерьера.",
+            "contacts": "Контакты мастерской корпусной мебели на заказ",
+        }
+        homepage = self.client.get(reverse("home")).content.decode()
+        for page, fragment in expected.items():
+            with self.subTest(page=page):
+                content = self.client.get(reverse(page)).content.decode()
+                self.assertIn('<meta name="description" content="', content)
+                self.assertIn(fragment, content)
+                self.assertNotIn(fragment, homepage)
+
+    def test_canonical_url_ignores_tracking_parameters(self):
+        response = self.client.get("/raboty/?utm_source=vk&ref=advertising")
+        self.assertContains(
+            response,
+            '<link rel="canonical" href="http://testserver/raboty/">',
+        )
+        self.assertNotContains(response, 'href="http://testserver/raboty/?utm_source=')
+
+    def test_without_policy_no_buttons_link_to_disabled_application_form(self):
+        PrivacyPolicy.objects.filter(is_active=True).update(is_active=False)
+        for page in ("home", "services", "contacts"):
+            with self.subTest(page=page):
+                body = self.client.get(reverse(page)).content.decode()
+                self.assertNotIn('href="#lead-form"', body)
+        project = Project.objects.create(
+            title="Шкаф без формы", slug="shkaf-bez-formy", published=True
+        )
+        self.assertNotContains(
+            self.client.get(project.get_absolute_url()),
+            'href="#lead-form"',
+        )
+
     def test_post_requires_csrf(self):
         client = Client(enforce_csrf_checks=True)
         self.assertEqual(client.post(reverse("submit_lead"), {
