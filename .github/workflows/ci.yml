@@ -56,7 +56,7 @@ jobs:
           tar -xzf /tmp/mebel-ci-backups/*.tar.gz -C /tmp/mebel-ci-restore
           docker compose --env-file .env.production -f compose.production.yaml exec -T db createdb -U mebel mebel_restore_ci
           docker compose --env-file .env.production -f compose.production.yaml exec -T db pg_restore -U mebel -d mebel_restore_ci --no-owner --no-privileges < /tmp/mebel-ci-restore/database.dump
-          docker compose --env-file .env.production -f compose.production.yaml exec -T db psql -U mebel -d mebel_restore_ci -tAc "SELECT count(*) FROM django_migrations" | grep -Eq '^[1-9][0-9]*
+          docker compose --env-file .env.production -f compose.production.yaml exec -T db psql -U mebel -d mebel_restore_ci -tAc "SELECT count(*) FROM django_migrations" | grep -Eq '^[1-9][0-9]*$'
 
       - if: always()
         run: docker compose --env-file .env.production -f compose.production.yaml down -v || true
