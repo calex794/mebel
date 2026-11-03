@@ -12,3 +12,14 @@
 .hero-consent input{margin-top:3px}
 .hero-consent a{text-decoration:underline;text-underline-offset:2px}
 @media(max-width:560px){.hero-quick-row{flex-direction:column}.hero-quick-row .button{width:100%}}
+
+/* Landing sections: calm hierarchy and editorial evidence. */
+.hero-copy{min-width:0}.hero-copy h1{font-size:clamp(35px,4.4vw,58px);max-width:750px}
+.process-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;counter-reset:steps;list-style:none;margin:36px 0;padding:0}
+.process-steps li{padding:24px 0;border-top:1px solid #c9c8bf;counter-increment:steps}
+.process-steps li:before{content:"0" counter(steps);display:block;font-size:13px;letter-spacing:.12em;color:var(--olive)}
+.process-steps p{color:var(--muted)}.about-copy{max-width:740px;margin-top:55px;border-top:1px solid var(--border);padding-top:26px}
+.about-copy p{color:var(--muted)}.faq-list{max-width:840px}.faq-item{border-bottom:1px solid var(--border);padding:18px 0}
+.faq-item summary{cursor:pointer;font-size:19px;font-weight:650;line-height:1.4;padding-right:28px}
+.faq-answer{max-width:700px;color:var(--muted)}.faq-answer p{margin:14px 0 2px}
+@media(max-width:850px){.process-steps{grid-template-columns:1fr;gap:8px}.hero-copy h1{font-size:clamp(34px,7vw,52px)}}
