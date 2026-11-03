@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
+from .security import address_key
 from .forms import LeadForm
 from .models import Article, FAQ, Lead, Project, Service
 
@@ -78,8 +79,7 @@ def submit_lead(request):
 
     # Five submissions per shared client IP in 15 minutes. For real traffic,
     # configure shared Redis cache and a trusted proxy IP policy before launch.
-    remote = request.META.get("REMOTE_ADDR", "unknown")
-    key = "lead-rate-" + remote
+    key = address_key(request, "lead-rate")
     count = cache.get(key, 0)
     if count >= 5:
         return render(request, "catalog/lead_form.html", {
