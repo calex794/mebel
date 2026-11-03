@@ -1,4 +1,6 @@
 from django.contrib import admin, messages
+from django.contrib.admin.models import LogEntry
+from django.contrib.contenttypes.models import ContentType
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -208,6 +210,16 @@ class LeadAdmin(admin.ModelAdmin):
                     locked.save(update_fields=[
                         "name", "phone", "message", "source", "erased_at",
                     ])
+                    # Django admin may have copied a phone number into
+                    # object_repr on earlier manual changes. Scrub those
+                    # historical log fields in the same transaction.
+                    LogEntry.objects.filter(
+                        content_type=ContentType.objects.get_for_model(Lead),
+                        object_id=str(lead_id),
+                    ).update(
+                        object_repr=f"Заявка №{lead_id} (контакты очищены)",
+                        change_message="",
+                    )
                 self.message_user(
                     request,
                     f"Контактные данные заявки №{lead_id} очищены в основной БД. "

@@ -1,5 +1,7 @@
 """Проверка ручной очистки персональных данных заявки и следов согласия."""
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.test import TestCase
@@ -98,6 +100,14 @@ class LeadErasureTests(TestCase):
         self.withdraw()
         withdrawn_at = self.lead.consent_withdrawn_at
         consent_at = self.lead.consent_at
+        old_log = LogEntry.objects.create(
+            user=self.owner,
+            content_type=ContentType.objects.get_for_model(Lead),
+            object_id=str(self.lead.pk),
+            object_repr=str(self.lead),
+            action_flag=CHANGE,
+            change_message="Номер +7 927 123-45-67 до очистки",
+        )
         response = self.action(
             confirm_erasure=f"СТЕРЕТЬ {self.lead.pk}",
             retention_checked="on", backups_checked="on",
@@ -116,6 +126,9 @@ class LeadErasureTests(TestCase):
         self.assertEqual(self.lead.consent_at, consent_at)
         self.assertIsNotNone(self.lead.erased_at)
         self.assertNotIn("+7 927", str(self.lead))
+        old_log.refresh_from_db()
+        self.assertNotIn("+7 927", old_log.object_repr)
+        self.assertEqual(old_log.change_message, "")
 
         first = self.lead.erased_at
         again = self.action(
