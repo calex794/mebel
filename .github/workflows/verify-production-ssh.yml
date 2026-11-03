@@ -1,0 +1,48 @@
+name: "Проверка SSH для VPS (без развёртывания)"
+on:
+  push:
+    branches:
+      - feat/automatic-vps-deploy
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-ssh:
+    if: github.repository == 'calex794/mebel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+    steps:
+      - name: "Проверить SSH и Docker (без изменений на сервере)"
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "${DEPLOY_HOST:-}" = "141.98.188.181" || { echo "DEPLOY_HOST not set to expected VPS"; exit 2; }
+          test "${DEPLOY_USER:-}" = "mebeldeploy" || { echo "DEPLOY_USER not set"; exit 2; }
+          test "${DEPLOY_PORT:-}" = "22" || { echo "Check DEPLOY_PORT configuration"; exit 2; }
+          test -n "${DEPLOY_SSH_KEY:-}" || { echo "Missing environment secret DEPLOY_SSH_KEY"; exit 2; }
+          test -n "${DEPLOY_SSH_KNOWN_HOSTS:-}" || { echo "Missing environment secret DEPLOY_SSH_KNOWN_HOSTS"; exit 2; }
+          temp="$(mktemp -d)"
+          trap 'rm -rf "$temp"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$temp/key"
+          printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > "$temp/known_hosts"
+          chmod 600 "$temp/key" "$temp/known_hosts"
+          ssh-keygen -y -f "$temp/key" >/dev/null || { echo "Invalid or passphrase-protected SSH key"; exit 2; }
+          ssh-keygen -F "$DEPLOY_HOST" -f "$temp/known_hosts" >/dev/null || {
+            echo "Pinned server public host key not found in DEPLOY_SSH_KNOWN_HOSTS"
+            exit 2
+          }
+          ssh -i "$temp/key" -p "$DEPLOY_PORT" \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$temp/known_hosts" \
+              -o IdentitiesOnly=yes \
+              -o BatchMode=yes \
+              -o ConnectTimeout=12 \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              'set -e; test "$(id -un)" = mebeldeploy; docker compose version; test -w /opt/mebel/releases; test -w /opt/mebel/shared; echo "SSH and Docker access verified; no deployment performed"'
