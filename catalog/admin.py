@@ -1,6 +1,30 @@
 from django.contrib import admin
+from django import forms
+from django.utils.html import format_html
+
+from .slugs import latin_slug
 
 from .models import Article, FAQ, Lead, Project, ProjectImage, Service, SiteSettings
+
+
+class ContentForm(forms.ModelForm):
+    slug = forms.SlugField(label="Адрес страницы", required=False, max_length=180,
+                           help_text="Оставьте пустым: адрес создастся автоматически из названия.")
+
+    def clean_slug(self):
+        value = self.cleaned_data.get("slug") or (
+            self.instance.slug if self.instance.pk else ""
+        )
+        if value:
+            return value
+        base = latin_slug(self.cleaned_data.get("title", ""))
+        candidate, number = base, 2
+        manager = self._meta.model.objects
+        while manager.filter(slug=candidate).exclude(pk=self.instance.pk).exists():
+            suffix = f"-{number}"
+            candidate = base[:180 - len(suffix)] + suffix
+            number += 1
+        return candidate
 
 
 @admin.register(SiteSettings)
@@ -23,7 +47,7 @@ class ContentAdmin(admin.ModelAdmin):
     list_filter = ("published",)
     list_editable = ("published", "order")
     search_fields = ("title", "summary")
-    prepopulated_fields = {"slug": ("title",)}
+    form = ContentForm
     save_on_top = True
 
 
@@ -35,6 +59,17 @@ class ServiceAdmin(ContentAdmin):
 class ProjectPhotoInline(admin.TabularInline):
     model = ProjectImage
     extra = 1
+    readonly_fields = ("preview",)
+    fields = ("image", "preview", "caption", "order")
+
+    @admin.display(description="Предпросмотр")
+    def preview(self, obj):
+        if not obj.pk or not obj.image:
+            return "—"
+        return format_html(
+            '<img src="{}" alt="Фотография проекта" style="max-width:180px;max-height:120px;object-fit:contain">',
+            obj.image.url,
+        )
 
 
 @admin.register(Project)
