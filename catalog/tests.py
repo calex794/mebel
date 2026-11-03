@@ -3,12 +3,25 @@ from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from .models import Article, Lead, Project, Service, SiteSettings
+from .models import Article, Lead, PrivacyPolicy, Project, Service, SiteSettings
 
 
 class PublicPagesTests(TestCase):
     def setUp(self):
         cache.clear()
+        PrivacyPolicy.objects.create(
+            version="v1", operator_name="Испытательный оператор",
+            operator_status="company", operator_address="Тестовый адрес",
+            operator_contact="test@example.org", purposes="Ответ на обращение",
+            data_categories="Телефон", data_subjects="Посетители сайта",
+            processing_actions="Запись и использование",
+            legal_basis="Согласие", retention_period="До прекращения цели",
+            deletion_procedure="По установленному порядку",
+            withdrawal_procedure="Письменное обращение",
+            security_measures="Ограничение доступа",
+            consent_text="Согласие на связь по заявке",
+            is_active=True,
+        )
 
     def test_main_pages(self):
         for name in ["home", "services", "projects", "articles", "contacts", "privacy", "robots", "sitemap"]:
@@ -84,7 +97,7 @@ class PublicPagesTests(TestCase):
     def test_short_form_saves_lead_without_extra_fields(self):
         response = self.client.post(reverse("submit_lead"), {
             "phone": "+7 927 123-45-67",
-            "consent": "on", "next": "/",
+            "consent": "on", "consent_version": "v1", "next": "/",
         })
         self.assertRedirects(response, "/")
         lead = Lead.objects.get()
@@ -95,14 +108,14 @@ class PublicPagesTests(TestCase):
     def test_submit_lead(self):
         response = self.client.post(reverse("submit_lead"), {
             "name": "Анна", "phone": "+7 927 123-45-67",
-            "message": "Шкаф", "consent": "on", "next": "/",
+            "message": "Шкаф", "consent": "on", "consent_version": "v1", "next": "/",
         })
         self.assertRedirects(response, reverse("home"))
         self.assertEqual(Lead.objects.count(), 1)
         self.assertEqual(Lead.objects.first().message, "Шкаф")
 
     def test_phone_required(self):
-        self.assertEqual(self.client.post(reverse("submit_lead"), {"consent": "on"}).status_code, 400)
+        self.assertEqual(self.client.post(reverse("submit_lead"), {"consent": "on", "consent_version": "v1"}).status_code, 400)
         self.assertEqual(Lead.objects.count(), 0)
 
     def test_consent_required(self):
@@ -111,13 +124,13 @@ class PublicPagesTests(TestCase):
 
     def test_honeypot(self):
         self.assertEqual(self.client.post(reverse("submit_lead"), {
-            "phone": "+7 927 123-45-67", "consent": "on", "website": "spam"
+            "phone": "+7 927 123-45-67", "consent": "on", "consent_version": "v1", "website": "spam"
         }).status_code, 400)
         self.assertEqual(Lead.objects.count(), 0)
 
     def test_no_external_redirect(self):
         response = self.client.post(reverse("submit_lead"), {
-            "phone": "+7 927 123-45-67", "consent": "on",
+            "phone": "+7 927 123-45-67", "consent": "on", "consent_version": "v1",
             "next": "https://evil.example",
         })
         self.assertRedirects(response, "/")
@@ -139,16 +152,16 @@ class PublicPagesTests(TestCase):
     def test_post_requires_csrf(self):
         client = Client(enforce_csrf_checks=True)
         self.assertEqual(client.post(reverse("submit_lead"), {
-            "phone": "+7 927 123-45-67", "consent": "on",
+            "phone": "+7 927 123-45-67", "consent": "on", "consent_version": "v1",
         }).status_code, 403)
 
     def test_rate_limit(self):
         for _ in range(5):
             self.assertEqual(self.client.post(reverse("submit_lead"), {
-                "phone": "+7 927 123-45-67", "consent": "on",
+                "phone": "+7 927 123-45-67", "consent": "on", "consent_version": "v1",
             }).status_code, 302)
         response = self.client.post(reverse("submit_lead"), {
-            "phone": "+7 927 123-45-67", "consent": "on",
+            "phone": "+7 927 123-45-67", "consent": "on", "consent_version": "v1",
         })
         self.assertEqual(response.status_code, 429)
         self.assertEqual(Lead.objects.count(), 5)
