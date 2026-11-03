@@ -17,7 +17,7 @@ services:
       DJANGO_TRUST_PROXY_X_REAL_IP: "1"
       REDIS_URL: redis://cache:6379/0
       DEBUG: "0"
-      DJANGO_ALLOWED_HOSTS: ${SITE_DOMAIN:?Set SITE_DOMAIN}
+      DJANGO_ALLOWED_HOSTS: ${SITE_DOMAIN:?Set SITE_DOMAIN},127.0.0.1,localhost
       DJANGO_CSRF_TRUSTED_ORIGINS: https://${SITE_DOMAIN:?Set SITE_DOMAIN}
     volumes:
       - media_data:/data/media
