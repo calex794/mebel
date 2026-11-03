@@ -11,6 +11,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=site:site . /app
+# WhiteNoise uses a manifest even in preview: build it before the non-root start.
+RUN DEBUG=1 python manage.py collectstatic --noinput
 RUN mkdir -p /data && chown site:site /data
 
 USER site
