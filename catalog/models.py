@@ -1,12 +1,17 @@
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.urls import reverse
+
+from .image_uploads import validate_image_size
+
+PHOTO_VALIDATORS = [FileExtensionValidator(["jpg", "jpeg", "png", "webp"]), validate_image_size]
 
 
 class SiteSettings(models.Model):
     brand = models.CharField("Название мастерской", max_length=140, default="Мебель на заказ")
     hero_title = models.CharField("Заголовок", max_length=220, default="Корпусная мебель на заказ по вашим размерам")
     hero_text = models.TextField("Подзаголовок", default="Кухни, шкафы, гардеробные и другая мебель по индивидуальному проекту. Продумываем детали вместе с вами, а материалы и цвета выбираем по настоящим образцам.")
-    hero_image = models.ImageField("Фото первого экрана", upload_to="hero/", blank=True)
+    hero_image = models.ImageField("Фото первого экрана", upload_to="hero/", blank=True, validators=PHOTO_VALIDATORS)
     phone = models.CharField("Телефон", max_length=50, blank=True)
     address = models.CharField("Адрес", max_length=255, blank=True)
     schedule = models.CharField("Режим работы", max_length=200, blank=True)
@@ -29,7 +34,7 @@ class PublishedModel(models.Model):
     title = models.CharField("Название", max_length=180)
     slug = models.SlugField("Адрес страницы (латиницей)", max_length=180, unique=True)
     summary = models.TextField("Краткое описание", blank=True)
-    image = models.ImageField("Главная фотография", upload_to="content/", blank=True)
+    image = models.ImageField("Главная фотография", upload_to="content/", blank=True, validators=PHOTO_VALIDATORS)
     published = models.BooleanField("Опубликовано", default=False)
     order = models.PositiveIntegerField("Порядок", default=0)
     seo_title = models.CharField("SEO заголовок", max_length=220, blank=True)
@@ -77,7 +82,7 @@ class Project(PublishedModel):
 
 class ProjectImage(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="photos", verbose_name="Работа")
-    image = models.ImageField("Фото", upload_to="projects/")
+    image = models.ImageField("Фото", upload_to="projects/", validators=PHOTO_VALIDATORS)
     caption = models.CharField("Описание фото", max_length=200, blank=True)
     order = models.PositiveIntegerField("Порядок", default=0)
 
