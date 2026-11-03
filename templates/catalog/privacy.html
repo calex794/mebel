@@ -1,5 +1,30 @@
-{% extends "catalog/base.html" %}{% block title %}Обработка персональных данных{% endblock %}
-{% block content %}<section class="page-top wrap"><h1>Обработка персональных данных</h1>
-<p>В форме заявки запрашиваются телефон, необязательное имя и описание запроса. Данные сохраняются для связи по обращению и доступны уполномоченному администратору.</p>
-<p><strong>До публикации сайта владелец обязан заполнить эту страницу:</strong> наименование и контакты оператора, правовые основания, сроки хранения, порядок отзыва согласия, меры защиты и иную информацию по применимому законодательству. Текущий текст — временный и не является готовой политикой.</p>
-<p>Не запускайте приём реальных заявок до заполнения документа.</p></section>{% endblock %}
+{% extends "catalog/base.html" %}
+{% block title %}Обработка персональных данных{% endblock %}
+{% block content %}
+<section class="page-top wrap">
+<h1>Обработка персональных данных</h1>
+{% if policy %}
+<p>Редакция: <strong>{{ policy.version }}</strong>{% if archived %} (архивная){% endif %}. Опубликована {{ policy.published_at|date:"d.m.Y H:i" }}.</p>
+<h2>Оператор</h2>
+<p>{{ policy.operator_name }} ({{ policy.get_operator_status_display }})</p>
+{% if policy.operator_identifier %}<p>{{ policy.operator_identifier }}</p>{% endif %}
+<p>{{ policy.operator_address|linebreaksbr }}</p>
+<p>{{ policy.operator_contact|linebreaksbr }}</p>
+<h2>Цели обработки</h2><div>{{ policy.purposes|linebreaks }}</div>
+<h2>Категории обрабатываемых данных</h2><div>{{ policy.data_categories|linebreaks }}</div>
+<h2>Категории субъектов данных</h2><div>{{ policy.data_subjects|linebreaks }}</div>
+<h2>Действия и способы обработки</h2><div>{{ policy.processing_actions|linebreaks }}</div>
+<h2>Правовые основания</h2><div>{{ policy.legal_basis|linebreaks }}</div>
+<h2>Сроки обработки и хранения</h2><div>{{ policy.retention_period|linebreaks }}</div>
+<h2>Прекращение обработки и удаление</h2><div>{{ policy.deletion_procedure|linebreaks }}</div>
+<h2>Отзыв согласия</h2><div>{{ policy.withdrawal_procedure|linebreaks }}</div>
+<h2>Меры защиты данных</h2><div>{{ policy.security_measures|linebreaks }}</div>
+{% if policy.third_parties %}<h2>Передача и порученная обработка</h2><div>{{ policy.third_parties|linebreaks }}</div>{% endif %}
+{% if policy.additional_text %}<h2>Дополнительные положения</h2><div>{{ policy.additional_text|linebreaks }}</div>{% endif %}
+<h2>Отдельное согласие на обработку данных в заявке</h2><div>{{ policy.consent_text|linebreaks }}</div>
+{% else %}
+<p><strong>Документ ещё не опубликован.</strong> Оператор должен заполнить сведения и утвердить содержание до приёма реальных заявок.</p>
+<p>Сайт не принимает заявки без опубликованной редакции согласия.</p>
+{% endif %}
+</section>
+{% endblock %}

@@ -1,5 +1,5 @@
 {% extends "catalog/base.html" %}{% block title %}Исправьте заявку{% endblock %}
 {% block content %}<section class="page-top wrap"><h1>Не удалось отправить заявку</h1>
-{% if rate_limited %}<p>Слишком много заявок. Попробуйте позднее или свяжитесь по телефону.</p>{% else %}<p>Проверьте телефон и согласие на обработку данных.</p>{% endif %}
+{% if policy_unavailable %}<p>Приём заявок временно недоступен: политика обработки данных не опубликована.</p>{% elif policy_changed %}<p>Условия обработки данных изменились. Обновите страницу и подтвердите новую редакцию согласия.</p>{% elif rate_limited %}<p>Слишком много заявок. Попробуйте позднее или свяжитесь по телефону.</p>{% else %}<p>Проверьте телефон и согласие на обработку данных.</p>{% endif %}
 {% for field in form %}{% for error in field.errors %}<p class="error">{{ field.label }}: {{ error }}</p>{% endfor %}{% endfor %}
 <a class="button" href="{% url 'home' %}#lead-form">Вернуться к форме</a></section>{% endblock %}

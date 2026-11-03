@@ -3,12 +3,12 @@
 <span class="eyebrow">Корпусная мебель на заказ · Стерлитамак, Салават, Ишимбай</span>
 <h1>{% if site %}{{ site.hero_title }}{% else %}Корпусная мебель на заказ по вашим размерам{% endif %}</h1>
 <p class="lead">{% if site %}{{ site.hero_text }}{% else %}Кухни, шкафы, гардеробные и другая мебель по индивидуальному проекту. Продумываем детали вместе с вами, а материалы и цвета выбираем по настоящим образцам.{% endif %}</p>
-<form class="hero-quick-form" method="post" action="{% url 'submit_lead' %}" aria-label="Оставить заявку">{% csrf_token %}
-<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="website" value="">
+{% if privacy_policy %}<form class="hero-quick-form" method="post" action="{% url 'submit_lead' %}" aria-label="Оставить заявку">{% csrf_token %}
+<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="website" value=""><input type="hidden" name="consent_version" value="{{ privacy_policy.version }}">
 <label for="hero-phone">Оставьте телефон — обсудим ваш проект</label>
 <div class="hero-quick-row"><input id="hero-phone" type="tel" name="phone" placeholder="+7 (999) 123-45-67" autocomplete="tel" inputmode="tel" required maxlength="40"><button class="button" type="submit">Обсудить проект</button></div>
-<label class="hero-consent"><input type="checkbox" name="consent" required> <span>Согласен(на) на <a href="{% url 'privacy' %}">обработку персональных данных</a> для связи по заявке</span></label>
-</form>
+<label class="hero-consent"><input type="checkbox" name="consent" required> <span>{{ privacy_policy.consent_text }} <a href="{% url 'privacy' %}?version={{ privacy_policy.version|urlencode }}">Политика (ред. {{ privacy_policy.version }})</a></span></label>
+</form>{% else %}<p>Приём заявок пока недоступен до публикации политики обработки данных.</p>{% endif %}
 </div><div class="hero-visual">{% if site and site.hero_image %}<img src="{{ site.hero_image.url }}" alt="Корпусная мебель по индивидуальному заказу" fetchpriority="high">{% else %}<div class="photo-placeholder"><span>Здесь будет фотография выполненной работы</span></div>{% endif %}</div></div></section>
 
 {% if projects %}<section class="section sand" aria-labelledby="works-heading"><div class="wrap"><span class="eyebrow">Реальные проекты</span>

@@ -1,10 +1,12 @@
 from .forms import LeadForm
-from .models import SiteSettings
+from .models import PrivacyPolicy, SiteSettings
 
 
 def site_data(request):
-    # One shared site configuration is editable in /upravlenie/.
+    # Один опубликованный документ используется обеими формами заявки.
+    policy = PrivacyPolicy.current()
     return {
         "site": SiteSettings.objects.first(),
-        "lead_form": LeadForm(),
+        "privacy_policy": policy,
+        "lead_form": LeadForm(initial={"consent_version": policy.version} if policy else None),
     }
