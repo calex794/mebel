@@ -17,3 +17,7 @@
         }
     }
 }
+# www is a canonical redirect only; Caddy also obtains an HTTPS certificate for it.
+www.{$SITE_DOMAIN} {
+    redir https://{$SITE_DOMAIN}{uri} permanent
+}
