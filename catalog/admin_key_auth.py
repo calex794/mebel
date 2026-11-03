@@ -50,7 +50,7 @@ def _private(response):
 def admin_login_entry(request):
     """Intercept Django's default password form before the admin URL patterns."""
     if not settings.MEBEL_ADMIN_KEY_SHA256:
-        if not settings.DEBUG:
+        if settings.MEBEL_ADMIN_KEY_REQUIRED:
             return _private(HttpResponse("Управление временно недоступно.", status=503))
         return admin.site.login(request)
     if request.method != "GET":
@@ -65,7 +65,7 @@ def admin_login_entry(request):
 def admin_key_login(request):
     expected = settings.MEBEL_ADMIN_KEY_SHA256
     if not expected:
-        if not settings.DEBUG:
+        if settings.MEBEL_ADMIN_KEY_REQUIRED:
             return _private(HttpResponse("Управление временно недоступно.", status=503))
         raise Http404()
 
