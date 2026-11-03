@@ -24,3 +24,16 @@ jobs:
       - run: python manage.py test
         env:
           DEBUG: '1'
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python scripts/prepare_preview.py
+      - run: docker compose -f compose.preview.yaml config --quiet
+      - run: docker compose -f compose.preview.yaml up -d --build --wait
+      - run: python scripts/smoke_preview.py
+      - if: always()
+        run: docker compose -f compose.preview.yaml down -v || true
