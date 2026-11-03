@@ -1,6 +1,7 @@
 # Explicit production deployment, not launched automatically.
 services:
   web:
+    image: ${MEBEL_WEB_IMAGE:-mebel-web:production}
     build:
       context: .
       dockerfile: Dockerfile.production
@@ -39,6 +40,7 @@ services:
     restart: unless-stopped
   db:
     image: postgres:18
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=20", "-c", "work_mem=2MB"]
     environment:
       POSTGRES_USER: mebel
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
@@ -54,7 +56,7 @@ services:
     security_opt: [no-new-privileges:true]
   cache:
     image: redis:7.4-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "32mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
