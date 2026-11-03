@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+.env
+.env.*
+db.sqlite3*
+media
+staticfiles
+.pytest_cache
+.coverage
+.DS_Store
