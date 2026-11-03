@@ -91,3 +91,10 @@ Before accepting personal data: create and publish a reviewed PrivacyPolicy revi
 
 ### Withdrawal workflow
 After authenticating the person who requests withdrawal, an authorized admin can select the relevant lead and use "Подтвердить отзыв согласия". It records the time, moves the lead to "Согласие отозвано", and prevents reopening it as an ordinary lead in the admin and via the database status constraint. Repeating the action preserves the original timestamp. No public unverified revocation endpoint is exposed. This is not erasure: determine the lawful retention and response procedure, handle necessary deletion (also backups) and document the outcome separately. Do not treat an admin action as proof that all legal obligations were fulfilled.
+
+
+## Очистка заявки после подтверждённого отзыва
+
+В Django admin после проверки личности заявителя и регистрации отзыва оператор выбирает **одну** заявку, действие «Очистить личные данные отозванной заявки», подтверждает отсутствие иных оснований для хранения, принимает к сведению обработку архивов и вводит контрольную фразу. В основной базе очищаются имя, телефон, текст обращения и URL источника. Поля `erased_at`, `consent_withdrawn_at`, `consent_at`, `consent_version` и ссылка на версию политики остаются как ограниченная запись учёта без исходных контактов. DB-ограничение запрещает восстановление контактных данных в такой записи. Эта операция не предназначена для массовой очистки.
+
+**Важно:** процесс не удаляет старые резервные копии, журналы, выгрузки или данные в сторонних системах. Оператор должен иметь закрытую внешнюю ведомость выполненных очисток (например, номер заявки и дату, без ФИО и телефона), устанавливать срок и порядок хранения архивов и проверять их после восстановления. Восстановление прежней копии базы может вернуть стёртые сведения: до подключения восстановленной базы к сайту повторно применить подтверждённые очистки из внешней ведомости и убедиться, что контактные поля пусты. Юридическую допустимость сохранения ограниченной служебной записи и срок её хранения определить отдельно.

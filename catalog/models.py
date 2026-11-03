@@ -241,6 +241,12 @@ class Lead(models.Model):
         help_text="Отметку вносит сотрудник после проверки обращения. "
                   "Не означает автоматического удаления данных.",
     )
+    erased_at = models.DateTimeField(
+        "Дата очистки контактных данных",
+        null=True, blank=True, editable=False,
+        help_text="Очищены поля заявки в основной базе. "
+                  "Резервные копии обрабатываются отдельно.",
+    )
     consent_version = models.CharField("Редакция согласия", max_length=40, blank=True, default="")
     consent_policy = models.ForeignKey(
         PrivacyPolicy, on_delete=models.PROTECT, null=True, blank=True,
@@ -260,7 +266,20 @@ class Lead(models.Model):
                 ),
                 name="catalog_withdrawn_lead_closed",
             ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(erased_at__isnull=True)
+                    | models.Q(
+                        status="withdrawn", consent_withdrawn_at__isnull=False,
+                        phone="", name="", message="", source="",
+                    )
+                ),
+                name="catalog_erased_lead_has_no_contact_data",
+            ),
         ]
 
     def __str__(self):
+        if self.erased_at:
+            return f"Заявка №{self.pk} — контактные данные очищены"
         return f"{self.phone} — {self.get_status_display()}"
+
