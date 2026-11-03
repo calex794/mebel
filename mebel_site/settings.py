@@ -134,6 +134,8 @@ SECURE_HSTS_PRELOAD = False
 
 # HTTPS must terminate on a trusted server/reverse proxy.
 SECURE_SSL_REDIRECT = not DEBUG
+# Internal Docker healthcheck uses HTTP; no sensitive data is served here.
+SECURE_REDIRECT_EXEMPT = [r"^readyz/$"]
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
