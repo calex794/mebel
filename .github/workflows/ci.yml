@@ -37,3 +37,14 @@ jobs:
       - run: python scripts/smoke_preview.py
       - if: always()
         run: docker compose -f compose.preview.yaml down -v || true
+  production-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python scripts/prepare_production.py example.org admin@example.org
+      - run: docker compose --env-file .env.production -f compose.production.yaml config --quiet
+      - run: docker run --rm -e SITE_DOMAIN=example.org -e ACME_EMAIL=admin@example.org -v "${{ github.workspace }}/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+      - run: docker build -f Dockerfile.production -t furniture-production-check .
