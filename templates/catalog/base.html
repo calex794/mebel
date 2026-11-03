@@ -3,13 +3,13 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}{% if site %}{{ site.seo_title }}{% else %}Корпусная мебель на заказ — Стерлитамак, Салават, Ишимбай{% endif %}{% endblock %}</title>
 <meta name="description" content="{% block description %}{% if site %}{{ site.seo_description }}{% else %}Корпусная мебель на заказ по индивидуальным размерам в Стерлитамаке, Салавате и Ишимбае.{% endif %}{% endblock %}">
-<link rel="canonical" href="{{ request.build_absolute_uri }}">
+<link rel="canonical" href="{{ canonical_url }}">
 <link rel="stylesheet" href="{% static 'css/site.css' %}">
 </head><body>
 <header class="header"><div class="wrap header-inner">
 <a class="brand" href="{% url 'home' %}">{% if site %}{{ site.brand }}{% else %}Мебель на заказ{% endif %}</a>
 <nav aria-label="Главное меню"><a href="{% url 'services' %}">Услуги</a><a href="{% url 'projects' %}">Работы</a><a href="{% url 'articles' %}">Статьи</a><a href="{% url 'contacts' %}">Контакты</a></nav>
-<a class="button small" href="#lead-form">Обсудить проект</a>
+{% if privacy_policy %}<a class="button small" href="#lead-form">Обсудить проект</a>{% endif %}
 </div></header>
 {% for message in messages %}<div class="wrap notice" role="status">{{ message }}</div>{% endfor %}
 <main>{% block content %}{% endblock %}</main>
