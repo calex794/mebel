@@ -16,6 +16,19 @@ if not SECRET_KEY:
     else:
         raise ImproperlyConfigured("Set DJANGO_SECRET_KEY before starting in production.")
 
+# The 256-bit administrator key is generated and kept off GitHub; only its digest
+# lives in the production environment. No-key production admins fail closed.
+MEBEL_ADMIN_KEY_SHA256 = os.getenv("MEBEL_ADMIN_KEY_SHA256", "").strip().lower()
+MEBEL_ADMIN_KEY_USER = os.getenv("MEBEL_ADMIN_KEY_USER", "admin").strip()
+MEBEL_ADMIN_KEY_REQUIRED = not DEBUG
+if MEBEL_ADMIN_KEY_SHA256 and (
+    len(MEBEL_ADMIN_KEY_SHA256) != 64
+    or any(c not in "0123456789abcdef" for c in MEBEL_ADMIN_KEY_SHA256)
+):
+    raise ImproperlyConfigured("MEBEL_ADMIN_KEY_SHA256 must be a lowercase SHA-256 hex digest.")
+if not MEBEL_ADMIN_KEY_USER:
+    raise ImproperlyConfigured("MEBEL_ADMIN_KEY_USER must not be empty.")
+
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",")
@@ -46,6 +59,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "catalog.security.AdminKeySessionGuard",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
