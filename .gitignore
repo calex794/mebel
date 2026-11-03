@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .env
 .env.preview
+.env.production
 db.sqlite3
 db.sqlite3-*
 media/
