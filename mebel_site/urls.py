@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
+from catalog.admin_key_auth import admin_key_login, admin_login_entry
 from catalog.ready import ready
 from catalog.sitemaps import ArticleSitemap, ProjectSitemap, ServiceSitemap, StaticSitemap
 
@@ -20,6 +21,8 @@ sitemaps = {
 
 urlpatterns = [
     path("readyz/", ready, name="ready"),
+    path("upravlenie/vhod/", admin_key_login, name="admin_key_login"),
+    path("upravlenie/login/", admin_login_entry),
     path("upravlenie/", admin.site.urls),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
     path("", include("catalog.urls")),
