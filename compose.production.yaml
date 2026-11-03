@@ -1,0 +1,85 @@
+# Explicit production deployment, not launched automatically.
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    env_file: .env.production
+    environment:
+      DB_ENGINE: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: mebel
+      DB_USER: mebel
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      DJANGO_MEDIA_ROOT: /data/media
+      DJANGO_SECURE_PROXY_SSL_HEADER: "1"
+      DJANGO_TRUST_PROXY_X_REAL_IP: "1"
+      REDIS_URL: redis://cache:6379/0
+      DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: ${SITE_DOMAIN:?Set SITE_DOMAIN},127.0.0.1,localhost
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://${SITE_DOMAIN:?Set SITE_DOMAIN}
+    volumes:
+      - media_data:/data/media
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz/', timeout=4)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+      start_period: 30s
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    restart: unless-stopped
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: mebel
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      POSTGRES_DB: mebel
+    volumes:
+      - pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mebel -d mebel"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+  cache:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?Set SITE_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - media_data:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+volumes:
+  pg_data:
+  media_data:
+  caddy_data:
+  caddy_config:

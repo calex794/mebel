@@ -1,0 +1,11 @@
+FROM python:3.13-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+RUN groupadd --system site && useradd --system --gid site --home-dir /app site
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY --chown=site:site . /app
+RUN DJANGO_SECRET_KEY=build-only-not-for-serving DEBUG=1 python manage.py collectstatic --noinput && mkdir -p /data/media && chown -R site:site /data
+USER site
+EXPOSE 8000
+CMD ["gunicorn", "mebel_site.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "2", "--timeout", "40", "--access-logfile", "-", "--error-logfile", "-"]
