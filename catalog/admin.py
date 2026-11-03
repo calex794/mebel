@@ -2,6 +2,7 @@ from django.contrib import admin, messages
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from django.utils.html import format_html
 
 from .slugs import latin_slug
@@ -94,15 +95,47 @@ class FAQAdmin(admin.ModelAdmin):
 
 @admin.register(Lead)
 class LeadAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "phone", "name", "status", "source", "consent_version")
-    list_filter = ("status", "created_at")
-    list_editable = ("status",)
+    list_display = (
+        "created_at", "phone", "name", "status", "source",
+        "consent_version", "consent_withdrawn_at",
+    )
+    list_filter = ("status", "created_at", "consent_withdrawn_at")
     search_fields = ("phone", "name", "message")
-    readonly_fields = ("name", "phone", "message", "source", "consent_at", "consent_version", "consent_policy", "created_at")
-    fields = ("name", "phone", "message", "source", "status", "consent_at", "consent_version", "consent_policy", "created_at")
+    readonly_fields = (
+        "name", "phone", "message", "source", "consent_at",
+        "consent_version", "consent_policy", "consent_withdrawn_at",
+        "created_at",
+    )
+    fields = (
+        "name", "phone", "message", "source", "status", "consent_at",
+        "consent_version", "consent_policy", "consent_withdrawn_at",
+        "created_at",
+    )
+    actions = ("confirm_consent_withdrawal",)
 
     def has_add_permission(self, request):
         return False
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(super().get_readonly_fields(request, obj))
+        if obj is not None and obj.consent_withdrawn_at is not None:
+            fields.append("status")
+        return fields
+
+    @admin.action(description="Подтвердить отзыв согласия (после проверки обращения)")
+    def confirm_consent_withdrawal(self, request, queryset):
+        # Идентификация заявителя проводится оператором вне сайта.
+        # Повторное действие не изменяет первоначальную дату регистрации.
+        updated = queryset.filter(consent_withdrawn_at__isnull=True).update(
+            consent_withdrawn_at=timezone.now(),
+            status="withdrawn",
+        )
+        self.message_user(
+            request,
+            f"Подтверждённый отзыв зарегистрирован для {updated} заявок. "
+            "Не связывайтесь по отозванному согласию. "
+            "Проверка оснований хранения и удаление данных выполняются отдельно.",
+        )
 
 
 @admin.register(PrivacyPolicy)

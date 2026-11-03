@@ -2,6 +2,7 @@
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.urls import reverse
@@ -141,3 +142,81 @@ class PrivacyConsentTests(TestCase):
         legacy = Lead.objects.create(phone="+7 900 000-00-00", consent_at=timezone.now())
         self.assertEqual(legacy.consent_version, "")
         self.assertIsNone(legacy.consent_policy)
+
+
+    def test_invalid_publication_does_not_disable_current_policy(self):
+        current = draft(is_active=True)
+        invalid = draft("bad", operator_contact="")
+        owner = get_user_model().objects.create_superuser(
+            "owner", "owner@example.org", "safe-long-password",
+        )
+        self.client.force_login(owner)
+        page = self.client.post(
+            reverse("admin:catalog_privacypolicy_changelist"),
+            {"action": "activate_policy", "_selected_action": [str(invalid.pk)]},
+            follow=True,
+        )
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "не опубликована")
+        current.refresh_from_db()
+        invalid.refresh_from_db()
+        self.assertTrue(current.is_active)
+        self.assertFalse(invalid.is_active)
+        self.assertIsNone(invalid.published_at)
+        self.assertEqual(self.submit().status_code, 302)
+
+    def test_confirmed_withdrawal_marks_lead_and_preserves_evidence(self):
+        policy = draft(is_active=True)
+        self.assertEqual(self.submit().status_code, 302)
+        lead = Lead.objects.get()
+        original_consent_at = lead.consent_at
+
+        owner = get_user_model().objects.create_superuser(
+            "owner", "owner@example.org", "safe-long-password",
+        )
+        self.client.force_login(owner)
+        action_url = reverse("admin:catalog_lead_changelist")
+        payload = {
+            "action": "confirm_consent_withdrawal",
+            "_selected_action": [str(lead.pk)],
+        }
+        response = self.client.post(action_url, payload, follow=True)
+        self.assertEqual(response.status_code, 200)
+        lead.refresh_from_db()
+        self.assertEqual(lead.status, "withdrawn")
+        self.assertIsNotNone(lead.consent_withdrawn_at)
+        self.assertEqual(lead.consent_at, original_consent_at)
+        self.assertEqual(lead.consent_version, "v1")
+        self.assertEqual(lead.consent_policy, policy)
+        recorded_at = lead.consent_withdrawn_at
+
+        self.client.post(action_url, payload)
+        lead.refresh_from_db()
+        self.assertEqual(lead.consent_withdrawn_at, recorded_at)
+
+        change_page = self.client.get(
+            reverse("admin:catalog_lead_change", args=[lead.pk]),
+        )
+        self.assertEqual(change_page.status_code, 200)
+        self.assertNotContains(change_page, 'name="status"')
+
+        # База не разрешает перевести отозванную заявку обратно в обработку.
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Lead.objects.filter(pk=lead.pk).update(status="contacted")
+
+    def test_withdrawal_admin_action_requires_login(self):
+        draft(is_active=True)
+        self.assertEqual(self.submit().status_code, 302)
+        lead = Lead.objects.get()
+        response = self.client.post(
+            reverse("admin:catalog_lead_changelist"),
+            {
+                "action": "confirm_consent_withdrawal",
+                "_selected_action": [str(lead.pk)],
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        lead.refresh_from_db()
+        self.assertIsNone(lead.consent_withdrawn_at)
+        self.assertEqual(lead.status, "new")

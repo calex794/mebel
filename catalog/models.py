@@ -225,13 +225,22 @@ class PrivacyPolicy(models.Model):
 
 
 class Lead(models.Model):
-    STATUS = [("new", "Новая"), ("contacted", "Связались"), ("done", "Закрыта")]
+    STATUS = [
+        ("new", "Новая"), ("contacted", "Связались"),
+        ("done", "Закрыта"), ("withdrawn", "Согласие отозвано"),
+    ]
     name = models.CharField("Имя", max_length=100, blank=True)
     phone = models.CharField("Телефон", max_length=40)
     message = models.TextField("Пожелания", blank=True)
     source = models.CharField("Страница заявки", max_length=300, blank=True)
     status = models.CharField("Состояние", max_length=20, choices=STATUS, default="new")
     consent_at = models.DateTimeField("Согласие получено")
+    consent_withdrawn_at = models.DateTimeField(
+        "Зарегистрирован подтверждённый отзыв согласия",
+        null=True, blank=True, editable=False,
+        help_text="Отметку вносит сотрудник после проверки обращения. "
+                  "Не означает автоматического удаления данных.",
+    )
     consent_version = models.CharField("Редакция согласия", max_length=40, blank=True, default="")
     consent_policy = models.ForeignKey(
         PrivacyPolicy, on_delete=models.PROTECT, null=True, blank=True,
@@ -243,6 +252,15 @@ class Lead(models.Model):
         ordering = ["-created_at"]
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(consent_withdrawn_at__isnull=True)
+                    | models.Q(status="withdrawn")
+                ),
+                name="catalog_withdrawn_lead_closed",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.phone} — {self.get_status_display()}"
